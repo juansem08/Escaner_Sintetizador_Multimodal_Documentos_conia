@@ -126,6 +126,77 @@ export function Pill({ label, tone = 'stone', icon, trailingIcon, onPress, size 
 // Tarjeta con degradado naranja de marca
 // ---------------------------------------------------------------------------
 
+export function GradientCard({
+  children,
+  style,
+  colors = gradients.brand,
+}: {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  colors?: readonly [string, string, ...string[]];
+}) {
+  return (
+    <View style={[glowShadow, { borderRadius: radius.xl }, style]}>
+      <LinearGradient
+        colors={colors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ borderRadius: radius.xl, padding: spacing.xl, overflow: 'hidden' }}
+      >
+        {/* Brillo suave en la esquina superior derecha */}
+        <View pointerEvents="none" style={styles.glow} />
+        {children}
+      </LinearGradient>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Cabecera de pantalla: botón izquierdo, título centrado, botón derecho
+// ---------------------------------------------------------------------------
+
+export function ScreenHeader({
+  left,
+  right,
+  title,
+  subtitle,
+  light,
+}: {
+  left?: ReactNode;
+  right?: ReactNode;
+  title?: string;
+  subtitle?: string;
+  /** Texto blanco (para fondos oscuros) */
+  light?: boolean;
+}) {
+  const c = useColors();
+  return (
+    <View style={styles.header}>
+      <View style={styles.headerSide}>{left}</View>
+      <View style={styles.headerCenter}>
+        {title ? (
+          <Text
+            style={[subtitle ? type.bodyStrong : type.label, { color: light ? '#FFFFFF' : subtitle ? c.text : c.textMuted }]}
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+        ) : null}
+        {subtitle ? (
+          <Text style={[type.small, { color: light ? 'rgba(255,255,255,0.65)' : c.textMuted, fontSize: 12 }]} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+      <View style={[styles.headerSide, { alignItems: 'flex-end' }]}>{right}</View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Título de sección con acción opcional ("Recientes · Ver todo")
+// ---------------------------------------------------------------------------
+
 
 const styles = StyleSheet.create({
   pillSm: { ...type.label, fontSize: 12, lineHeight: 16 },
