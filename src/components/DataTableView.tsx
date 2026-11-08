@@ -31,4 +31,19 @@ export function DataTableView({ table }: { table: DataTable }) {
   );
 }
 
-const useStyles = makeStyles(() => ({ container: {}, title: {}, scroll: {}, headerRow: {}, headerCell: {}, headerText: {}, row: {}, cell: {}, cellText: {} }));
+const useStyles = makeStyles((c) =>
+  StyleSheet.create({
+    wrapper: { borderRadius: radius.md, backgroundColor: c.surfaceMuted },
+    row: { flexDirection: 'row' },
+    headerRow: { backgroundColor: c.accentSoft },
+    zebra: { backgroundColor: c.surface },
+    cell: {
+      width: CELL_WIDTH,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 2,
+      ...type.small,
+      color: c.text,
+    },
+    headerCell: { fontFamily: type.label.fontFamily, color: c.accentText },
+  }),
+);
