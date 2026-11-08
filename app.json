@@ -26,6 +26,45 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Clarify necesita la cámara para escanear tus documentos."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Clarify necesita acceso a tus fotos para importar documentos."
+        }
+      ],
+      "expo-status-bar",
+      "expo-sharing",
+      "expo-localization",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#F2F0EE",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#121110"
+          }
+        }
+      ]
+    ]
   }
 }
