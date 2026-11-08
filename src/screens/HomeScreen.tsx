@@ -193,9 +193,80 @@ export function HomeScreen({ mode, onScan, onImportImages, onImportPdf, onOpen, 
           <View>
             <Text style={text.display}>{t('library.title')}</Text>
             <Text style={text.small}>
+              {history.length === 1 ? t('library.countOne') : t('library.countMany', { n: history.length })}
+            </Text>
+          </View>
+          <RoundButton icon="plus" label={t('home.scan')} variant="ink" onPress={onScan} size={56} />
         </View>
-      </ScrollView>
-    </View>
+        {searchRow}
+        {chips}
+      </View>
+    );
+
+  return (
+    <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
+      <FlatList
+        data={visible}
+        keyExtractor={(d) => d.id}
+        ListHeaderComponent={header}
+        contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Feather name={isSearching ? 'search' : 'inbox'} size={28} color={c.textMuted} />
+            <Text style={[text.small, { textAlign: 'center' }]}>{isSearching ? t('home.noResults') : t('home.empty')}</Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <DocumentRow doc={item} onPress={() => onOpen(item)} onLongPress={() => confirmDelete(item)} />
+        )}
+        ListFooterComponent={
+          visible.length > 0 ? <Text style={[text.small, styles.hint]}>{t('home.deleteHint')}</Text> : undefined
+        }
+      />
+    </SafeAreaView>
+  );
+}
+
+function DocumentRow({ doc, onPress, onLongPress }: { doc: ScannedDocument; onPress: () => void; onLongPress: () => void }) {
+  const { t, settings } = useSettings();
+  const styles = useStyles();
+  const c = useColors();
+  const style = docStyle(doc.analysis.documentType);
+  const tone = toneColors(c, style.tone);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      style={({ pressed }) => [styles.item, pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] }]}
+    >
+      <LinearGradient colors={style.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.tile}>
+        <Feather name={style.icon} size={26} color={tone.fg} />
+      </LinearGradient>
+      <View style={styles.itemBody}>
+        <Pill label={capitalize(doc.analysis.documentType)} tone={style.tone} size="sm" />
+        <Text style={styles.itemTitle} numberOfLines={1}>
+          {doc.analysis.title}
+        </Text>
+        <Text style={styles.itemMeta} numberOfLines={1}>
+          {t('common.pagesShort', { n: doc.pages.length })} · {formatDate(doc.createdAt, settings.language)}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  const styles = useStyles();
+  return (
+    <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
+      <Text style={[styles.chipText, active && styles.chipTextActive]} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -271,4 +342,3 @@ const useStyles = makeStyles((c) =>
     hint: { textAlign: 'center', marginTop: spacing.lg, fontSize: 12 },
   }),
 );
-
