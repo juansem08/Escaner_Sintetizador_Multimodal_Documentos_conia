@@ -169,6 +169,34 @@ export async function analyzeDocument(files) {
 // 2) Re-análisis a partir del texto corregido por el usuario
 // ---------------------------------------------------------------------------
 
+export async function analyzeText(transcription) {
+  const text = String(transcription).slice(0, MAX_TRANSCRIPTION_CHARS);
+  const raw = await generateJson({
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          {
+            text:
+              'Este es el texto de un documento, ya transcrito y corregido por el usuario. ' +
+              'No lo transcribas de nuevo: en "transcription" devuelve una cadena vacía y en "warnings" una lista vacía. ' +
+              `Genera el resto del análisis a partir de este texto:\n"""\n${text}\n"""`,
+          },
+        ],
+      },
+    ],
+    systemInstruction: ANALYSIS_INSTRUCTIONS,
+    schema: analysisSchema,
+    temperature: 0.2,
+  });
+  // Conservamos el texto del usuario tal cual
+  return normalizeAnalysis({ ...raw, transcription: text, warnings: [] });
+}
+
+// ---------------------------------------------------------------------------
+// 3) Traducción del análisis completo
+// ---------------------------------------------------------------------------
+
 
 const str = (v) => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v));
 const strList = (v) => (Array.isArray(v) ? v.map(str).filter(Boolean) : []);
