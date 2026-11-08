@@ -92,3 +92,45 @@ const analysisSchema = {
   required: ['isDocument', ...analysisKeys],
 };
 
+const translationSchema = { type: Type.OBJECT, properties: analysisProperties, required: analysisKeys };
+
+const insightsSchema = {
+  type: Type.OBJECT,
+  properties: {
+    headline: S('Conclusión principal del análisis en una o dos frases'),
+    sections: list({
+      type: Type.OBJECT,
+      properties: {
+        heading: { type: Type.STRING },
+        items: list({
+          type: Type.OBJECT,
+          properties: {
+            title: S('Idea, riesgo, concepto o dato en pocas palabras'),
+            detail: S('Explicación concreta, citando la parte del documento si aplica'),
+            level: {
+              type: Type.STRING,
+              enum: ['high', 'medium', 'low', 'info'],
+              description: 'Importancia o gravedad: high, medium, low; info si es solo informativo',
+            },
+          },
+          required: ['title', 'detail', 'level'],
+        }),
+      },
+      required: ['heading', 'items'],
+    }),
+    flashcards: list(
+      {
+        type: Type.OBJECT,
+        properties: { question: { type: Type.STRING }, answer: { type: Type.STRING } },
+        required: ['question', 'answer'],
+      },
+      'Tarjetas de repaso. Solo en el modo estudio; en los demás, vacío.',
+    ),
+  },
+  required: ['headline', 'sections', 'flashcards'],
+};
+
+// ---------------------------------------------------------------------------
+// 1) Análisis completo desde imágenes/PDF: OCR + resumen + datos en una llamada
+// ---------------------------------------------------------------------------
+
