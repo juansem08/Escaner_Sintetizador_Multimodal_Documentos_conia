@@ -126,3 +126,34 @@ app.post(
   }),
 );
 
+app.use((req, res) => res.status(404).json({ error: translate(requestLang(req), 'routeNotFound') }));
+
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, _next) => {
+  const lang = requestLang(req);
+  if (err instanceof multer.MulterError) {
+    const [key, params] =
+      err.code === 'LIMIT_FILE_SIZE'
+        ? ['fileTooLarge', { max: MAX_FILE_MB }]
+        : err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE'
+          ? ['tooManyPages', { max: MAX_PAGES }]
+          : ['uploadError', {}];
+    return res.status(413).json({ error: translate(lang, key, params) });
+  }
+  if (err instanceof HttpError) return res.status(err.status).json({ error: translate(lang, err.key, err.params) });
+  if (err?.type === 'entity.too.large') return res.status(413).json({ error: translate(lang, 'requestTooLarge') });
+
+  console.error('[server] error inesperado', err);
+  res.status(500).json({ error: translate(lang, 'internal') });
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Clarify API escuchando en el puerto ${PORT} (modelo: ${modelName})`);
+  if (!process.env.GEMINI_API_KEY) console.warn('⚠  Falta GEMINI_API_KEY: copia server/.env.example a server/.env');
+
+  const lan = Object.values(os.networkInterfaces())
+    .flat()
+    .filter((i) => i && i.family === 'IPv4' && !i.internal)
+    .map((i) => `  http://${i.address}:${PORT}`);
+  console.log(['  http://localhost:' + PORT, ...lan].join('\n'));
+});
