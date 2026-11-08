@@ -309,6 +309,71 @@ Reglas:
 // 5) Chat: preguntas y respuestas sobre el documento
 // ---------------------------------------------------------------------------
 
+export async function askAboutDocument(document, history, question) {
+  const transcription = String(document.transcription).slice(0, MAX_TRANSCRIPTION_CHARS);
+
+  const systemInstruction = `Eres un asistente que responde preguntas sobre UN documento concreto que el usuario ha escaneado.
+
+Reglas:
+- Responde SOLO con información del documento. Si la respuesta no está en él, dilo claramente y no inventes.
+- Cuando sea útil, indica de qué parte del documento sale el dato (cláusula, página, sección).
+- Puedes explicar, resumir, comparar o hacer cálculos sencillos con los datos del documento.
+- Responde en el idioma de la pregunta, de forma clara y breve.
+- Usa texto plano: nada de Markdown, asteriscos ni almohadillas. Para listas usa guiones "- ".
+
+DOCUMENTO
+Título: ${document.title ?? 'Sin título'}
+Tipo: ${document.documentType ?? 'Desconocido'}
+Datos clave extraídos: ${JSON.stringify(document.keyData ?? [])}
+
+Transcripción:
+"""
+${transcription}
+"""`;
+
+  const contents = history.slice(-MAX_HISTORY_MESSAGES).map((m) => ({
+    role: m.role === 'model' ? 'model' : 'user',
+    parts: [{ text: String(m.text) }],
+  }));
+  contents.push({ role: 'user', parts: [{ text: question }] });
+
+  const response = await callGemini((model, abortSignal) =>
+    getClient().models.generateContent({
+      model,
+      contents,
+      config: { systemInstruction, temperature: 0.3, abortSignal },
+    }),
+  );
+
+  const answer = (response.text ?? '').trim();
+  if (!answer) throw new HttpError(502, 'emptyAnswer');
+  return answer;
+}
+
+// ---------------------------------------------------------------------------
+// Utilidades
+// ---------------------------------------------------------------------------
+
+async function generateJson({ contents, systemInstruction, schema, temperature }) {
+  const response = await callGemini((model, abortSignal) =>
+    getClient().models.generateContent({
+      model,
+      contents,
+      config: {
+        abortSignal,
+        systemInstruction,
+        responseMimeType: 'application/json',
+        responseSchema: schema,
+        temperature,
+      },
+    }),
+  );
+  try {
+    return JSON.parse(response.text ?? '');
+  } catch {
+    throw new HttpError(502, 'invalidFormat');
+  }
+}
 
 const str = (v) => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v));
 const strList = (v) => (Array.isArray(v) ? v.map(str).filter(Boolean) : []);
@@ -346,7 +411,6 @@ function normalizeAnalysis(raw) {
     warnings: strList(raw.warnings),
   };
 }
-
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const isTimeout = (err) => err?.name === 'TimeoutError' || err?.name === 'AbortError';
@@ -397,4 +461,3 @@ function toHttpError(err) {
   if (status >= 500) return new HttpError(503, 'unavailable');
   return new HttpError(502, 'aiFailed');
 }
-
