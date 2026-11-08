@@ -76,3 +76,62 @@ const styles = {
   footer: { font: { name: FONT, sz: 9, italic: true, color: { rgb: C.muted } } },
 };
 
+const s = (v: string, style?: Record<string, unknown>): Cell => ({ v, t: 's', s: style });
+
+/** Nombre de hoja válido en Excel: máx. 31 caracteres, sin []:*?/\ y sin repetir */
+function sheetName(raw: string, used: Set<string>): string {
+  const base = (raw.replace(/[[\]:*?/\\]/g, ' ').replace(/\s+/g, ' ').trim() || 'Tabla').slice(0, 28);
+  let name = base;
+  for (let i = 2; used.has(name.toLowerCase()); i++) name = `${base.slice(0, 26)} ${i}`;
+  used.add(name.toLowerCase());
+  return name;
+}
+
+/** Ancho de columna aproximado según el contenido (en caracteres) */
+function columnWidths(rows: Row[], min = 10, max = 60): { wch: number }[] {
+  const widths: number[] = [];
+  for (const row of rows) {
+    row.forEach((cell, i) => {
+      if (!cell) return;
+      // Las celdas de cabecera combinadas no deben ensanchar la columna A
+      const len = String(cell.v).split('\n').reduce((m, l) => Math.max(m, l.length), 0);
+      widths[i] = Math.max(widths[i] ?? min, Math.min(max, len + 2));
+    });
+  }
+  return widths.map((w) => ({ wch: Math.max(min, w ?? min) }));
+}
+
+function toSheet(rows: Row[], opts: { merges?: XLSX.Range[]; cols?: { wch: number }[]; rowHeights?: Record<number, number> }) {
+  const ws = XLSX.utils.aoa_to_sheet(rows.map((r) => r.map((c) => (c ? c.v : ''))));
+  rows.forEach((row, r) =>
+    row.forEach((cell, c) => {
+      const ref = XLSX.utils.encode_cell({ r, c });
+      if (cell?.s && ws[ref]) ws[ref].s = cell.s;
+    }),
+  );
+  if (opts.merges) ws['!merges'] = opts.merges;
+  if (opts.cols) ws['!cols'] = opts.cols;
+  if (opts.rowHeights) {
+    ws['!rows'] = [];
+    for (const [r, hpt] of Object.entries(opts.rowHeights)) ws['!rows'][Number(r)] = { hpt };
+  }
+  return ws;
+}
+
+/** Pinta de naranja toda la franja de cabecera (también las celdas vacías combinadas) */
+function paintBand(ws: XLSX.WorkSheet, rowsIdx: number[], width: number, style: Record<string, unknown>) {
+  // SheetJS solo guarda las celdas dentro de "!ref": lo ampliamos para incluir toda la franja
+  const range = XLSX.utils.decode_range(ws['!ref'] ?? 'A1');
+  range.e.c = Math.max(range.e.c, width - 1);
+  range.e.r = Math.max(range.e.r, ...rowsIdx);
+  ws['!ref'] = XLSX.utils.encode_range(range);
+  for (const r of rowsIdx) {
+    for (let c = 0; c < width; c++) {
+      const ref = XLSX.utils.encode_cell({ r, c });
+      if (!ws[ref]) ws[ref] = { v: '', t: 's' };
+      if (!ws[ref].s) ws[ref].s = style;
+    }
+  }
+}
+
+/** Genera el libro de Excel y lo devuelve en base64 */
