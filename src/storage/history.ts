@@ -27,3 +27,11 @@ export async function saveDocument(doc: ScannedDocument): Promise<void> {
   await write(existed ? docs.map((d) => (d.id === doc.id ? doc : d)) : [doc, ...others]);
 }
 
+export async function deleteDocument(id: string): Promise<void> {
+  const docs = await loadHistory();
+  await write(docs.filter((d) => d.id !== id));
+}
+
+export function newId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
