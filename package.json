@@ -1,29 +1,25 @@
 {
-  "name": "docusynth",
+  "name": "clarify",
   "version": "1.0.0",
-  "main": "expo/AppEntry.js",
+  "private": true,
+  "main": "index.ts",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "server": "npm --prefix server start",
+    "server:install": "npm --prefix server install",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@google/genai": "^2.27.0",
-    "expo": "^57.0.27",
-    "expo-asset": "~57.0.19",
-    "expo-camera": "~57.0.6",
-    "expo-file-system": "~57.0.7",
-    "expo-image-manipulator": "~57.0.21",
-    "expo-status-bar": "~57.0.1",
-    "react": "19.2.3",
-    "react-native": "0.86.3"
+    "expo": "~58.0.23",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.25.2",
-    "@types/react": "~19.2.4",
-    "babel-preset-expo": "~57.0.14",
-    "typescript": "^5.8.2"
-  },
-  "private": true
+    "@types/react": "~19.3.0",
+    "typescript": "~6.0.3"
+  }
 }
