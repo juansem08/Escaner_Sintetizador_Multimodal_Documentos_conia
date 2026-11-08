@@ -99,3 +99,30 @@ app.post(
 );
 
 // Análisis especializado: contrato, estudio, factura o general
+app.post(
+  '/api/insights',
+  json,
+  route(async (req, res) => {
+    const { document, mode, language } = req.body ?? {};
+    requireDocument(document);
+    if (!INSIGHT_MODES.includes(mode)) throw new HttpError(400, 'invalidMode');
+    const languageName = typeof language === 'string' && language.trim() ? language.trim().slice(0, 40) : 'the document language';
+    res.json({ insights: await generateInsights(document, mode, languageName) });
+  }),
+);
+
+// Preguntas y respuestas sobre el documento
+app.post(
+  '/api/chat',
+  json,
+  route(async (req, res) => {
+    const { document, history, question } = req.body ?? {};
+    requireDocument(document);
+    if (typeof question !== 'string' || !question.trim()) throw new HttpError(400, 'emptyQuestion');
+    if (question.length > 2000) throw new HttpError(400, 'questionTooLong');
+
+    const answer = await askAboutDocument(document, Array.isArray(history) ? history : [], question.trim());
+    res.json({ answer });
+  }),
+);
+
