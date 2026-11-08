@@ -76,3 +76,14 @@ app.post(
 );
 
 // Regenera el análisis a partir del texto corregido por el usuario
+app.post(
+  '/api/reanalyze',
+  json,
+  route(async (req, res) => {
+    const { transcription } = req.body ?? {};
+    requireDocument({ transcription });
+    res.json({ analysis: await analyzeText(transcription) });
+  }),
+);
+
+// Traduce el análisis completo a otro idioma
