@@ -135,3 +135,84 @@ function paintBand(ws: XLSX.WorkSheet, rowsIdx: number[], width: number, style: 
 }
 
 /** Genera el libro de Excel y lo devuelve en base64 */
+export function buildWorkbookBase64(a: DocumentAnalysis, t: TFunction): string {
+  const wb = XLSX.utils.book_new();
+  const used = new Set<string>();
+  const WIDTH = 3; // columnas de la hoja Resumen: nº / campo / valor
+
+  // ---------------- Hoja 1: Resumen ----------------
+  const rows: Row[] = [];
+  const merges: XLSX.Range[] = [];
+  const heights: Record<number, number> = {};
+  const mergeRow = (r: number) => merges.push({ s: { r, c: 0 }, e: { r, c: WIDTH - 1 } });
+
+  rows.push([s('CLARIFY', styles.brand)]);
+  mergeRow(0);
+  heights[0] = 20;
+  rows.push([s(a.title, styles.title)]);
+  mergeRow(1);
+  heights[1] = 34;
+  rows.push([s([a.documentType, a.language].filter(Boolean).join(' · '), styles.subtitle)]);
+  mergeRow(2);
+  heights[2] = 22;
+  rows.push([]);
+
+  rows.push([s(t('summary.executive').toUpperCase(), styles.caption)]);
+  rows.push([s(a.summary.overview, styles.summary)]);
+  mergeRow(rows.length - 1);
+  heights[rows.length - 1] = Math.min(160, 18 * Math.ceil(a.summary.overview.length / 90) + 10);
+  rows.push([]);
+
+  if (a.summary.keyPoints.length) {
+    rows.push([s(t('summary.keyPoints').toUpperCase(), styles.caption)]);
+    a.summary.keyPoints.forEach((p, i) => {
+      rows.push([{ v: i + 1, t: 'n', s: styles.pointNum }, s(p, styles.cell(i % 2 === 1))]);
+      merges.push({ s: { r: rows.length - 1, c: 1 }, e: { r: rows.length - 1, c: WIDTH - 1 } });
+    });
+    rows.push([]);
+  }
+
+  if (a.keyData.length) {
+    rows.push([s(t('data.keyData').toUpperCase(), styles.caption)]);
+    a.keyData.forEach((d, i) => {
+      const zebra = i % 2 === 1;
+      rows.push([s(d.label, styles.label(zebra)), s(d.value, styles.cell(zebra, true))]);
+      merges.push({ s: { r: rows.length - 1, c: 1 }, e: { r: rows.length - 1, c: WIDTH - 1 } });
+    });
+    rows.push([]);
+  }
+  rows.push([s(t('export.generatedWith'), styles.footer)]);
+
+  const summarySheet = toSheet(rows, {
+    merges,
+    cols: [{ wch: 28 }, { wch: 45 }, { wch: 30 }],
+    rowHeights: heights,
+  });
+  paintBand(summarySheet, [0, 1, 2], WIDTH, styles.title);
+  XLSX.utils.book_append_sheet(wb, summarySheet, sheetName(t('result.tab.summary'), used));
+
+  // ---------------- Una hoja por tabla ----------------
+  for (const table of a.tables) {
+    const width = Math.max(1, table.columns.length);
+    const tRows: Row[] = [
+      [s(table.title, styles.title)],
+      [s(a.title, styles.subtitle)],
+      [],
+      table.columns.map((col) => s(col, styles.header)),
+      ...table.rows.map((r, i) => r.map((cell) => s(cell || '—', styles.cell(i % 2 === 1)))),
+      [],
+      [s(t('export.generatedWith'), styles.footer)],
+    ];
+    const tMerges: XLSX.Range[] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: width - 1 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: width - 1 } },
+    ];
+    // El ancho se calcula solo con la cabecera de columnas y los datos (no con el título)
+    const cols = columnWidths(tRows.slice(3, 3 + 1 + table.rows.length), 12, 50);
+    const ws = toSheet(tRows, { merges: tMerges, cols, rowHeights: { 0: 30, 1: 20, 3: 22 } });
+    paintBand(ws, [0, 1], width, styles.title);
+    XLSX.utils.book_append_sheet(wb, ws, sheetName(table.title, used));
+  }
+
+  return XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+}
