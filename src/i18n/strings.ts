@@ -210,9 +210,6 @@ const es = {
 
 export type StringKey = keyof typeof es;
 
-
-export type StringKey = keyof typeof es;
-
 const en: Record<StringKey, string> = {
   'common.cancel': 'Cancel',
   'common.delete': 'Delete',
