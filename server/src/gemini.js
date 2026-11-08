@@ -231,6 +231,84 @@ Rules:
 // 4) Análisis especializado según el tipo de documento
 // ---------------------------------------------------------------------------
 
+const INSIGHT_PROMPTS = {
+  contract: `Analiza el documento como un abogado revisor de contratos. Crea estas secciones:
+- "Riesgos y cláusulas desfavorables" (level según gravedad: high, medium, low)
+- "Plazos y fechas clave" (vencimientos, duración, preavisos, renovaciones)
+- "Penalizaciones y consecuencias de incumplimiento"
+- "Obligaciones de cada parte"
+- "Puntos a negociar o aclarar"
+Omite una sección solo si el documento no tiene nada al respecto. flashcards vacío.`,
+  study: `Analiza el documento como un profesor que prepara material de estudio. Crea estas secciones:
+- "Conceptos clave" (title = concepto, detail = explicación clara y breve; level = info)
+- "Preguntas de examen" (title = pregunta, detail = respuesta modelo; level según dificultad: high, medium, low)
+- "Relaciones y ejemplos" (conexiones entre ideas, ejemplos útiles)
+Además genera de 8 a 12 flashcards (pregunta corta / respuesta concisa) que cubran lo esencial.`,
+  invoice: `Analiza el documento como un contable (factura, recibo, ticket o presupuesto). Crea estas secciones:
+- "Totales" (subtotal, impuestos, descuentos, total y moneda)
+- "Impuestos y descuentos" (tipo y base de cada impuesto)
+- "Vencimiento y forma de pago"
+- "Partidas destacadas" (las de mayor importe o inusuales)
+- "Alertas" (comprueba la aritmética: si las sumas o impuestos no cuadran, indícalo con level high; datos fiscales que falten)
+flashcards vacío.`,
+  general: `Analiza el documento en profundidad. Crea estas secciones:
+- "Ideas principales"
+- "Acciones y próximos pasos" (qué debería hacer el lector; level según urgencia)
+- "Preguntas abiertas o puntos poco claros"
+flashcards vacío.`,
+};
+
+export async function generateInsights(document, mode, languageName) {
+  const transcription = String(document.transcription).slice(0, MAX_TRANSCRIPTION_CHARS);
+  const raw = await generateJson({
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          {
+            text: `Título: ${document.title ?? ''}\nTipo: ${document.documentType ?? ''}\n\nTexto del documento:\n"""\n${transcription}\n"""`,
+          },
+        ],
+      },
+    ],
+    systemInstruction: `${INSIGHT_PROMPTS[mode]}
+
+Reglas:
+- Básate SOLO en el documento; no inventes datos. Si algo no aparece, no lo incluyas.
+- Sé concreto: cita cláusulas, páginas o importes cuando existan.
+- Escribe TODO el contenido (incluidos los títulos de las secciones) en ${languageName}.`,
+    schema: insightsSchema,
+    temperature: 0.3,
+  });
+
+  const levels = new Set(['high', 'medium', 'low', 'info']);
+  return {
+    headline: str(raw.headline),
+    sections: (Array.isArray(raw.sections) ? raw.sections : [])
+      .map((s) => ({
+        heading: str(s?.heading),
+        items: (Array.isArray(s?.items) ? s.items : [])
+          .map((i) => ({
+            title: str(i?.title),
+            detail: str(i?.detail),
+            level: levels.has(i?.level) ? i.level : 'info',
+          }))
+          .filter((i) => i.title || i.detail),
+      }))
+      .filter((s) => s.heading && s.items.length > 0),
+    flashcards:
+      mode === 'study'
+        ? (Array.isArray(raw.flashcards) ? raw.flashcards : [])
+            .map((f) => ({ question: str(f?.question), answer: str(f?.answer) }))
+            .filter((f) => f.question && f.answer)
+        : [],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 5) Chat: preguntas y respuestas sobre el documento
+// ---------------------------------------------------------------------------
+
 
 const str = (v) => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v));
 const strList = (v) => (Array.isArray(v) ? v.map(str).filter(Boolean) : []);
