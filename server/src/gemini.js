@@ -172,3 +172,54 @@ function normalizeAnalysis(raw) {
   };
 }
 
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const isTimeout = (err) => err?.name === 'TimeoutError' || err?.name === 'AbortError';
+const statusOf = (err) => (isTimeout(err) ? 504 : Number(err?.status ?? err?.code) || 0);
+const isTransient = (status) => status === 429 || status === 500 || status === 503 || status === 504;
+
+/**
+ * Llama a Gemini con reintentos ante saturación temporal (429/5xx/timeout) y,
+ * si el modelo principal sigue sin responder, prueba con el modelo de respaldo.
+ * Todo dentro de un presupuesto de tiempo para responder antes que el timeout de la app.
+ * @param {(model: string, signal: AbortSignal) => Promise<any>} fn
+ */
+async function callGemini(fn) {
+  const models = FALLBACK_MODEL && FALLBACK_MODEL !== MODEL ? [MODEL, FALLBACK_MODEL] : [MODEL];
+  const deadline = Date.now() + TOTAL_BUDGET_MS;
+  let lastError;
+
+  for (const model of models) {
+    for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+      const remaining = deadline - Date.now();
+      if (remaining < 5_000) break;
+      try {
+        return await fn(model, AbortSignal.timeout(Math.min(ATTEMPT_TIMEOUT_MS, remaining)));
+      } catch (err) {
+        if (err instanceof HttpError) throw err;
+        lastError = err;
+        const status = statusOf(err);
+        console.error(`[gemini] ${model} intento ${attempt + 1}: error ${status}`, String(err?.message).slice(0, 160));
+        if (!isTransient(status)) throw toHttpError(err);
+        // Si el modelo no responde a tiempo, no insistimos: pasamos directamente al de respaldo
+        if (status === 504) break;
+        if (attempt < RETRY_DELAYS_MS.length) await sleep(RETRY_DELAYS_MS[attempt]);
+      }
+    }
+    if (model !== models.at(-1)) console.warn(`[gemini] ${model} no disponible, probando con ${models.at(-1)}`);
+  }
+  throw toHttpError(lastError);
+}
+
+/** Traduce un error de Gemini a un HttpError con mensaje para el usuario */
+function toHttpError(err) {
+  if (!err) return new HttpError(503, 'unavailable');
+  const status = statusOf(err);
+  if (status === 429) return new HttpError(429, 'rateLimit');
+  if (status === 400 && /api key/i.test(String(err?.message))) return new HttpError(500, 'invalidKey');
+  if (status === 403) return new HttpError(500, 'forbidden');
+  if (status === 404) return new HttpError(500, 'modelNotFound', { model: MODEL });
+  if (status >= 500) return new HttpError(503, 'unavailable');
+  return new HttpError(502, 'aiFailed');
+}
+
