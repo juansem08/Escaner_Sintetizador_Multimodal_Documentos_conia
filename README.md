@@ -121,22 +121,39 @@ Para ver qué modelos puede usar tu API key: `npm --prefix server run models`.
 | `npm --prefix server run models`| Lista los modelos de Gemini disponibles   |
 | `npm run typecheck`             | Comprueba los tipos de TypeScript         |
 
-## Generar el instalable (APK)
+## Despliegue
 
-En Expo Go la app encuentra el servidor sola gracias a Metro. En un APK no hay Metro, así que:
+### Servidor en Render
 
-1. **El servidor tiene que estar accesible desde el móvil**: en tu red local (`http://IP-del-PC:3001`, con el PC encendido) o publicado en internet (Render, Railway, un VPS…) para usarla desde cualquier sitio.
-2. **Compila indicando esa URL** con `EXPO_PUBLIC_API_URL`, por ejemplo con EAS Build:
+El backend está publicado en **https://clarify-server.onrender.com** (Render, plan gratuito), así que la app instalada funciona en cualquier red sin necesidad de un PC encendido.
+
+| Ajuste en Render   | Valor                                                              |
+| ------------------ | ------------------------------------------------------------------ |
+| Tipo               | Web Service · Node                                                 |
+| Root Directory     | `server`                                                           |
+| Build / Start      | `npm install` / `npm start`                                        |
+| Variables          | `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL`          |
+| Health Check Path  | `/api/health`                                                      |
+
+La API key se guarda solo en las variables de entorno de Render, nunca en el repositorio. Cada push a `main` que cambie `server/` se despliega automáticamente.
+
+> En el plan gratuito el servidor se suspende tras 15 minutos sin uso: la primera petición después de eso tarda unos 30–50 s más. En la app puedes despertarlo con *Ajustes → Servidor → Probar conexión*.
+
+### Instalable para Android (APK)
+
+En Expo Go la app encuentra el servidor sola gracias a Metro. En un APK no hay Metro, así que la URL del servidor se incluye al compilar: está definida en [`eas.json`](eas.json) (`EXPO_PUBLIC_API_URL`, perfil `preview`).
 
 ```bash
 npm install -g eas-cli
 eas login
-eas build:configure
-# en eas.json, dentro del perfil "preview": "env": { "EXPO_PUBLIC_API_URL": "https://tu-servidor.com" }
-eas build -p android --profile preview      # genera un .apk para instalar directamente
+eas build -p android --profile preview      # genera un .apk en los servidores de Expo
 ```
 
-El icono y la pantalla de carga de Clarify solo se ven en el APK (Expo Go muestra los suyos). Las adaptaciones hechas para Expo Go (subida con XMLHttpRequest, PDF y Excel escritos en la caché de la app) funcionan igual en el APK. El tráfico `http://` a una IP local está permitido mediante `expo-build-properties` (`usesCleartextTraffic`).
+Al terminar, EAS da un enlace y un código QR para descargar el `.apk` e instalarlo directamente en el móvil (Android pedirá permitir la instalación desde esa fuente).
+
+El icono y la pantalla de carga de Clarify solo se ven en el APK (Expo Go muestra los suyos). Las adaptaciones hechas para Expo Go (subida con XMLHttpRequest, PDF y Excel escritos en la caché de la app) funcionan igual en el APK. La app solo pide permiso de cámara (el de micrófono está bloqueado).
+
+> **iOS:** instalar la app fuera de Expo Go en un iPhone requiere una cuenta de Apple Developer (TestFlight o distribución *ad hoc*). Sin ella, en iPhone se usa con Expo Go.
 
 ## Límites y notas
 
@@ -147,4 +164,4 @@ El icono y la pantalla de carga de Clarify solo se ven en el APK (Expo Go muestr
 - En el modo libro la foto se divide exactamente por la mitad: centra el lomo en la línea del marco.
 - En Excel los importes se guardan como texto, tal como aparecen en el documento.
 - El Excel se genera con `xlsx-js-style` (basada en SheetJS 0.18). Esa versión tiene vulnerabilidades conocidas al **leer** archivos externos; Clarify solo **genera** archivos, así que no le afectan.
-- El servidor no tiene autenticación: está pensado para la red local. No lo expongas en Internet sin añadir una.
+- El servidor no tiene autenticación: cualquiera que conozca su URL puede usarlo y consumir la cuota de Gemini. Para un proyecto académico es aceptable; para un uso real habría que añadir autenticación o límites por usuario.
