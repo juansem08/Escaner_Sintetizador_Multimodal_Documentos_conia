@@ -118,51 +118,6 @@ export function PageEditor({ page, onCancel, onSave }: Props) {
 
   const fail = (err: unknown) => {
     console.warn('[editor]', err);
-    Alert.alert(t('editor.error'));
-  };
-
-  const rotate = async (degrees: number) => {
-    setBusy(true);
-    try {
-      const ref = await ImageManipulator.manipulate(uri).rotate(degrees).renderAsync();
-      const result = await ref.saveAsync({ compress: 0.85, format: SaveFormat.JPEG });
-      setUri(result.uri);
-    } catch (err) {
-      fail(err);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const apply = async () => {
-    if (!crop || !display || !imageSize) return;
-    const isFull = crop.x < 1 && crop.y < 1 && crop.w > display.w - 1 && crop.h > display.h - 1;
-    const jpgName = page.name.replace(/\.\w+$/, '') + '.jpg';
-
-    if (isFull) {
-      onSave(uri === page.uri ? page : { uri, mimeType: 'image/jpeg', name: jpgName });
-      return;
-    }
-
-    setBusy(true);
-    try {
-      const f = 1 / display.scale;
-      const originX = Math.max(0, Math.round(crop.x * f));
-      const originY = Math.max(0, Math.round(crop.y * f));
-      const rect = {
-        originX,
-        originY,
-        width: Math.min(imageSize.w - originX, Math.round(crop.w * f)),
-        height: Math.min(imageSize.h - originY, Math.round(crop.h * f)),
-      };
-      const ref = await ImageManipulator.manipulate(uri).crop(rect).renderAsync();
-      const result = await ref.saveAsync({ compress: 0.85, format: SaveFormat.JPEG });
-      onSave({ uri: result.uri, mimeType: 'image/jpeg', name: jpgName });
-    } catch (err) {
-      fail(err);
-      setBusy(false);
-    }
-  };
 
   return (
     <Modal visible animationType="slide" onRequestClose={onCancel} statusBarTranslucent>
@@ -285,45 +240,3 @@ const styles = StyleSheet.create({
   },
   toolText: { color: '#fff', fontFamily: fonts.semibold },
 });
-  return null;
-}
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#000' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  title: { color: '#fff', fontSize: 17, fontFamily: fonts.bold },
-  headerText: { color: '#fff', fontSize: 16, fontFamily: fonts.medium },
-  apply: { color: ACCENT, fontFamily: fonts.bold },
-  canvas: { flex: 1, margin: spacing.lg, alignItems: 'center', justifyContent: 'center' },
-  shade: { position: 'absolute', backgroundColor: 'rgba(0,0,0,0.6)' },
-  cropBox: { position: 'absolute', borderWidth: 2, borderColor: ACCENT },
-  grid: { position: 'absolute', top: 0, bottom: 0, width: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.5)' },
-  gridH: { position: 'absolute', left: 0, right: 0, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.5)' },
-  handle: {
-    position: 'absolute',
-    width: HANDLE,
-    height: HANDLE,
-    borderRadius: HANDLE / 2,
-    backgroundColor: '#fff',
-    borderWidth: 3,
-    borderColor: ACCENT,
-  },
-  busy: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
-  hint: { color: 'rgba(255,255,255,0.75)', textAlign: 'center', fontSize: 13, marginBottom: spacing.md, fontFamily: fonts.medium },
-  toolbar: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg },
-  tool: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    borderRadius: radius.pill,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-  },
-  toolText: { color: '#fff', fontFamily: fonts.semibold },
-});
-
