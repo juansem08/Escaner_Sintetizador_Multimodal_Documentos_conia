@@ -111,3 +111,40 @@ GEMINI_FALLBACK_MODEL=gemini-3.6-flash
 
 Para ver qué modelos puede usar tu API key: `npm --prefix server run models`.
 
+## Scripts
+
+| Comando                         | Qué hace                                  |
+| ------------------------------- | ----------------------------------------- |
+| `npm start`                     | Inicia Expo                               |
+| `npm run android`               | Abre en emulador/dispositivo Android      |
+| `npm run server`                | Inicia el backend en el puerto 3001       |
+| `npm --prefix server run models`| Lista los modelos de Gemini disponibles   |
+| `npm run typecheck`             | Comprueba los tipos de TypeScript         |
+
+## Generar el instalable (APK)
+
+En Expo Go la app encuentra el servidor sola gracias a Metro. En un APK no hay Metro, así que:
+
+1. **El servidor tiene que estar accesible desde el móvil**: en tu red local (`http://IP-del-PC:3001`, con el PC encendido) o publicado en internet (Render, Railway, un VPS…) para usarla desde cualquier sitio.
+2. **Compila indicando esa URL** con `EXPO_PUBLIC_API_URL`, por ejemplo con EAS Build:
+
+```bash
+npm install -g eas-cli
+eas login
+eas build:configure
+# en eas.json, dentro del perfil "preview": "env": { "EXPO_PUBLIC_API_URL": "https://tu-servidor.com" }
+eas build -p android --profile preview      # genera un .apk para instalar directamente
+```
+
+El icono y la pantalla de carga de Clarify solo se ven en el APK (Expo Go muestra los suyos). Las adaptaciones hechas para Expo Go (subida con XMLHttpRequest, PDF y Excel escritos en la caché de la app) funcionan igual en el APK. El tráfico `http://` a una IP local está permitido mediante `expo-build-properties` (`usesCleartextTraffic`).
+
+## Límites y notas
+
+- Máx. 10 páginas por documento, 15 MB por archivo y 18 MB en total.
+- Formatos: JPG, PNG, WEBP, HEIC y PDF.
+- El historial se guarda solo en el dispositivo (máx. 50 documentos).
+- El escáner no detecta bordes automáticamente y el recorte es rectangular: la detección y la corrección de perspectiva necesitarían un módulo nativo que no funciona en Expo Go.
+- En el modo libro la foto se divide exactamente por la mitad: centra el lomo en la línea del marco.
+- En Excel los importes se guardan como texto, tal como aparecen en el documento.
+- El Excel se genera con `xlsx-js-style` (basada en SheetJS 0.18). Esa versión tiene vulnerabilidades conocidas al **leer** archivos externos; Clarify solo **genera** archivos, así que no le afectan.
+- El servidor no tiene autenticación: está pensado para la red local. No lo expongas en Internet sin añadir una.
