@@ -22,7 +22,13 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundImage": "./assets/adaptive-bg.png",
         "backgroundColor": "#F26D45"
-      }
+      },
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -39,7 +45,8 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Clarify necesita la cámara para escanear tus documentos."
+          "cameraPermission": "Clarify necesita la cámara para escanear tus documentos.",
+          "recordAudioAndroid": false
         }
       ],
       [
@@ -65,6 +72,12 @@
           }
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "5759baa5-9143-4e2c-8efe-e87c8eb8a84e"
+      }
+    },
+    "owner": "juansem08"
   }
 }
