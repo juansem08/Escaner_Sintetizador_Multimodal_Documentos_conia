@@ -1,96 +1,26 @@
-# DocuSynth 
+# Clarify — Escáner y Sintetizador de Documentos con IA
 
-DocuSynth es un escáner multimodal de documentos impulsado por **React Native**, **Expo**, **TypeScript** y el SDK oficial **`@google/genai`** (Gemini 1.5 Flash).
+Aplicación móvil (React Native + Expo) que **captura documentos con la cámara** —notas manuscritas, páginas de libros, contratos, facturas— y usa **Google Gemini** para:
 
----
+- 🔎 **OCR**: transcribir todo el texto, incluida la letra manuscrita.
+- 📝 **Resumen ejecutivo** con puntos clave y datos destacados.
+- 📊 **Extracción de datos clave y tablas** (fechas, importes, partes, cláusulas, partidas…).
+- 💬 **Preguntas y respuestas** basadas únicamente en el contenido del documento.
 
-##  Flujo de Arquitectura Multimodal
+Además:
 
-```text
-  [ Captura de Cámara ] (expo-camera)
-            │
-            ▼
-  [ Pipeline de Optimización ] (expo-image-manipulator: 1600px, 75% JPEG)
-            │
-            ▼
-  [ Conversión Base64 ] (expo-file-system)
-            │
-            ▼
-  [ Validación de Integridad ] (documentValidator: límite 10MB, payload)
-            │
-            ▼
-  [ Gemini 1.5 Flash ] (@google/genai con responseSchema estructurado)
-      ├── Resumen Ejecutivo
-      ├── Entidades Clave (Campos & Valores)
-      └── Contexto Documental
-            │
-            ▼
-  [ Presentación & Q&A ]
-      ├── StatusHeroCard & ExecutiveSummaryCard
-      ├── ExtractedDataGrid (con filtrado y búsqueda en tiempo real)
-      └── DocumentChatSession (Q&A con directiva de sistema restringida)
-```
+- 📷 **Escáner con tres modos**: *Auto* (foto tras foto), *Manual* (recortar cada página al capturarla) y *Libro* (fotografía el libro abierto y se separa en dos páginas).
+- ✂️ **Recortar y girar** cada página antes de analizarla, y reordenar o quitar páginas.
+- 🧠 **Análisis especializado** según el documento: *Contrato* (riesgos, plazos, penalizaciones), *Estudio* (conceptos, preguntas de examen y tarjetas de repaso), *Factura* (totales, impuestos, alertas de cálculo) o *General*.
+- 🌐 **Traducir** el documento completo a español, inglés, francés, portugués, alemán o italiano.
+- ✏️ **Corregir el texto del OCR** y regenerar el resumen, los datos y las tablas.
+- 📤 **Exportar** a **PDF** y a **Excel (.xlsx)** con el diseño de la app, o compartir como texto.
+- 📋 **Copiar** referencias, números de transacción y respuestas con un toque.
+- 🔍 **Buscar** en el historial (título, contenido, datos) y filtrar por tipo de documento.
+- 🌙 **Modo oscuro** (automático o manual) y **app en español o inglés**, desde Ajustes.
+- Importar fotos de la galería o PDF, hasta 10 páginas por documento, con historial guardado en el dispositivo.
 
----
+## Diseño
 
-##  Características
-- **Captura Inteligente**: Encuadre visual para documentos A4/Carta con `expo-camera`.
-- **Pipeline de Optimización**: Redimensión y compresión con `expo-image-manipulator` y codificación Base64 eficiente con `expo-file-system`.
-- **Validación Robusta**: Verificación de tamaño y formato con `documentValidator` antes del envío a la API.
-- **Extracción Estructurada con IA**: Respuestas garantizadas en formato JSON estructurado (`responseSchema`) con resumen ejecutivo, entidades clave y contexto documental.
-- **Plantillas Especializadas**: Soporte por categoría para facturas, contratos, tickets de compra, recibos y credenciales.
-- **Chat Contextual Q&A**: Asistente interactivo con memoria conversacional, sugerencias rápidas de preguntas y directiva de sistema basada exclusivamente en el documento.
-- **Historial en Memoria**: Registro de documentos escaneados con `historyService`.
-- **Exportación Estructurada**: Formateo a Markdown y texto plano con `exportFormatter`.
+Interfaz propia con fondo gris cálido, botones tipo píldora, tarjetas con **degradado naranja** de marca, tipografía **Plus Jakarta Sans** e iconos de línea. Navegación con barra flotante (Inicio · Documentos · Escanear · Ajustes). La pantalla *Preguntar* y el visor de la cámara usan un tema oscuro propio. Icono y pantalla de carga en `assets/` (se regeneran con `assets/make-icons.ps1`).
 
----
-
-##  Estructura del Proyecto
-
-```text
-src/
-├── components/
-│   ├── camera/          # ViewfinderOverlay, CameraControls, CameraTopBar
-│   ├── chat/            # FloatingChatBar, DocumentChatDrawer, SuggestedQuestionsBar
-│   ├── results/         # StatusHeroCard, ExecutiveSummaryCard, ExtractedDataGrid, ErrorBanner
-│   └── DocumentCameraModal.tsx
-├── hooks/
-│   ├── useDocumentScanner.ts  # Captura, compresión y codificación
-│   └── useDocumentChat.ts     # Sesión y reactividad del chat
-├── screens/
-│   └── DocuSynthScreen.tsx    # Pantalla principal integradora
-├── services/
-│   ├── geminiService.ts       # Extracción con Schema estructurado y plantillas
-│   ├── chatService.ts         # Q&A contextualizado (RAG in-memory)
-│   └── historyService.ts      # Historial local de documentos analizados
-├── theme/
-│   └── stitchTheme.ts         # Tokens de diseño y paletas dinámicas
-├── types/
-│   ├── gemini.types.ts
-│   ├── scanner.types.ts
-│   ├── stitch.types.ts
-│   └── history.types.ts
-└── utils/
-    ├── documentValidator.ts   # Validación de payload Base64 y dimensiones
-    └── exportFormatter.ts     # Formateador a Markdown / texto plano
-```
-
----
-
-##  Instalación y Configuración
-
-1. Clona el repositorio e instala las dependencias:
-```bash
-npm install
-```
-
-2. Configura las variables de entorno:
-```bash
-cp .env.example .env
-```
-Añade tu clave `EXPO_PUBLIC_GEMINI_API_KEY`.
-
-3. Inicia la aplicación con Expo:
-```bash
-npx expo start
-```
