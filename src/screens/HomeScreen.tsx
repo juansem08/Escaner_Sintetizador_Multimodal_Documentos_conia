@@ -176,6 +176,23 @@ export function HomeScreen({ mode, onScan, onImportImages, onImportPdf, onOpen, 
           <Button title={t('home.pdf')} icon="file" variant="light" onPress={importPdf} style={styles.flex} />
         </View>
 
+        {searchRow}
+
+        <View style={{ marginTop: spacing.sm }}>
+          <SectionTitle
+            title={t('home.recent')}
+            action={filtered.length > RECENT_LIMIT ? t('home.seeAll') : undefined}
+            onAction={onSeeAll}
+          />
+        </View>
+        {chips}
+      </View>
+    ) : (
+      <View style={styles.header}>
+        <View style={styles.topRow}>
+          <View>
+            <Text style={text.display}>{t('library.title')}</Text>
+            <Text style={text.small}>
         </View>
       </ScrollView>
     </View>
