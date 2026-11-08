@@ -198,7 +198,92 @@ export function ResultScreen({ initialDoc, onBack, chatOpen, onChatOpenChange }:
                 accessibilityState={{ selected: active }}
               >
                 <Text style={[styles.tabText, active && styles.tabTextActive]}>{t(item.label)}</Text>
-    </View>
+                {item.key === 'data' && dataCount > 0 && (
+                  <View style={[styles.count, active && styles.countActive]}>
+                    <Text style={[styles.countText, active && styles.countTextActive]}>{dataCount}</Text>
+                  </View>
+                )}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      <View style={styles.content}>
+        {tab === 'summary' && <SummaryTab analysis={analysis} />}
+        {tab === 'data' && <DataTab analysis={analysis} />}
+        {tab === 'insights' && <InsightsTab analysis={analysis} insights={insightsForView} onGenerate={runInsights} />}
+        {tab === 'text' && <TextTab analysis={analysis} isTranslation={viewLang !== 'original'} onRegenerate={regenerate} />}
+      </View>
+
+      {/* Acción fija inferior, como en el diseño */}
+      {(tab === 'summary' || (tab === 'data' && hasTabularData(analysis))) && (
+        <View style={[styles.sticky, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]} pointerEvents="box-none">
+          <LinearGradient
+            colors={[`${c.background}00`, c.background]}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          {tab === 'summary' ? (
+            <Button title={t('result.askCta')} trailingArrow onPress={() => onChatOpenChange(true)} />
+          ) : (
+            <View style={styles.stickyRow}>
+              <Button
+                title={t('data.exportCsv')}
+                icon="grid"
+                onPress={() => runExport('excel')}
+                loading={exporting === 'excel'}
+                style={styles.flex}
+              />
+              {allData ? <CopyButton value={allData} size={64} variant="light" /> : null}
+            </View>
+          )}
+        </View>
+      )}
+
+      <BottomSheet visible={sheet === 'export'} title={t('export.title')} onClose={() => setSheet(null)}>
+        <SheetOption
+          icon="file-text"
+          label={t('export.pdf')}
+          description={t('export.pdfDesc')}
+          onPress={() => runExport('pdf')}
+          loading={exporting === 'pdf'}
+        />
+        <SheetOption
+          icon="grid"
+          label={t('export.csv')}
+          description={hasTabularData(analysis) ? t('export.csvDesc') : t('export.noTables')}
+          onPress={() => runExport('excel')}
+          loading={exporting === 'excel'}
+          disabled={!hasTabularData(analysis)}
+        />
+        <SheetOption icon="message-circle" label={t('export.text')} description={t('export.textDesc')} onPress={() => runExport('text')} />
+      </BottomSheet>
+
+      <BottomSheet visible={sheet === 'translate'} title={t('result.translateTitle')} onClose={() => !translating && setSheet(null)}>
+        <SheetOption
+          icon="file"
+          label={t('result.original')}
+          description={doc.analysis.language}
+          selected={viewLang === 'original'}
+          onPress={() => selectLanguage('original')}
+          disabled={translating !== null}
+        />
+        {TRANSLATION_LANGUAGES.map((l) => (
+          <SheetOption
+            key={l.code}
+            icon="globe"
+            label={l.name}
+            selected={viewLang === l.code}
+            loading={translating === l.code}
+            description={translating === l.code ? t('result.translating') : undefined}
+            trailing={doc.translations?.[l.code] ? t('result.translated') : undefined}
+            onPress={() => selectLanguage(l.code)}
+            disabled={translating !== null && translating !== l.code}
+          />
+        ))}
+      </BottomSheet>
+    </SafeAreaView>
   );
 }
 
@@ -248,4 +333,3 @@ const useStyles = makeStyles((c) =>
     flex: { flex: 1, minHeight: 64 },
   }),
 );
-
