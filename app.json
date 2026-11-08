@@ -1,18 +1,10 @@
 {
   "expo": {
-    "name": "DocuSynth",
-    "slug": "docusynth",
+    "name": "Clarify",
+    "slug": "clarify",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
-    "plugins": [
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "DocuSynth requiere acceso a la cámara para digitalizar y analizar documentos con IA."
-        }
-      ],
-      "expo-asset"
-    ]
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#F2F0EE"
   }
 }
