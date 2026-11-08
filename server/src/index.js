@@ -87,3 +87,15 @@ app.post(
 );
 
 // Traduce el análisis completo a otro idioma
+app.post(
+  '/api/translate',
+  json,
+  route(async (req, res) => {
+    const { analysis, targetLanguage } = req.body ?? {};
+    requireDocument(analysis);
+    if (!Object.hasOwn(TRANSLATION_LANGUAGES, targetLanguage)) throw new HttpError(400, 'invalidLanguage');
+    res.json({ analysis: await translateAnalysis(analysis, targetLanguage) });
+  }),
+);
+
+// Análisis especializado: contrato, estudio, factura o general
