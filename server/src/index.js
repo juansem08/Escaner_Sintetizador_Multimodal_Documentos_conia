@@ -54,3 +54,8 @@ function requireDocument(document) {
   }
 }
 
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true, model: modelName, hasApiKey: Boolean(process.env.GEMINI_API_KEY) });
+});
+
+// OCR + resumen + datos a partir de imágenes o PDF
