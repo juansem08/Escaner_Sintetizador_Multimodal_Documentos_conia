@@ -182,3 +182,79 @@ export async function exportPdf(a: DocumentAnalysis, insights: Insights[], t: TF
 // ---------------------------------------------------------------------------
 
 /** Excel usa ";" como separador en los países donde la coma es el separador decimal */
+function csvDelimiter(): string {
+  try {
+    return getLocales()[0]?.decimalSeparator === ',' ? ';' : ',';
+  } catch {
+    return ',';
+  }
+}
+
+export function hasTabularData(a: DocumentAnalysis) {
+  return a.keyData.length > 0 || a.tables.length > 0;
+}
+
+function buildCsv(a: DocumentAnalysis, t: TFunction): string {
+  const sep = csvDelimiter();
+  const cell = (v: string) => (/[",;\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  const row = (cells: string[]) => cells.map(cell).join(sep);
+  const lines: string[] = [row([a.title]), ''];
+
+  if (a.keyData.length) {
+    lines.push(row([t('data.keyData')]));
+    a.keyData.forEach((d) => lines.push(row([d.label, d.value])));
+    lines.push('');
+  }
+  for (const table of a.tables) {
+    lines.push(row([table.title]), row(table.columns));
+    table.rows.forEach((r) => lines.push(row(r)));
+    lines.push('');
+  }
+  return lines.join('\r\n');
+}
+
+// ---------------------------------------------------------------------------
+// Excel (.xlsx) con el estilo de la app
+// ---------------------------------------------------------------------------
+
+
+export async function exportCsv(a: DocumentAnalysis, t: TFunction) {
+  // El BOM hace que Excel detecte UTF-8 y muestre bien tildes y eñes
+  const content = '﻿' + buildCsv(a, t);
+  const filename = `${fileSlug(a.title)}.csv`;
+
+  if (Platform.OS === 'web') {
+    const url = URL.createObjectURL(new Blob([content], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  let fileUri: string | null = null;
+  try {
+    const file = new File(Paths.cache, filename);
+    if (file.exists) file.delete();
+    file.create();
+    await file.write(content);
+    fileUri = file.uri;
+  } catch (err) {
+    console.warn('[Clarify] no se pudo escribir el CSV, se comparte como texto:', (err as Error).message);
+  }
+
+  if (fileUri) {
+    try {
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'text/csv',
+        UTI: 'public.comma-separated-values-text',
+        dialogTitle: a.title,
+      });
+      return;
+    } catch (err) {
+      console.warn('[Clarify] no se pudo compartir el CSV como archivo, se comparte como texto:', (err as Error).message);
+    }
+  }
+  await Share.share({ title: filename, message: content.replace(/^﻿/, '') });
+}
