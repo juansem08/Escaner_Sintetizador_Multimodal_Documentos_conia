@@ -134,3 +134,41 @@ const insightsSchema = {
 // 1) Análisis completo desde imágenes/PDF: OCR + resumen + datos en una llamada
 // ---------------------------------------------------------------------------
 
+
+const str = (v) => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v));
+const strList = (v) => (Array.isArray(v) ? v.map(str).filter(Boolean) : []);
+
+function normalizeAnalysis(raw) {
+  const tables = (Array.isArray(raw.tables) ? raw.tables : [])
+    .map((t) => {
+      const columns = strList(t?.columns);
+      const rows = (Array.isArray(t?.rows) ? t.rows : [])
+        .filter(Array.isArray)
+        .map((row) => {
+          const cells = row.map(str);
+          // Igualamos cada fila al número de columnas para que la tabla se pinte bien
+          while (cells.length < columns.length) cells.push('');
+          return cells.slice(0, columns.length);
+        });
+      return { title: str(t?.title) || 'Tabla', columns, rows };
+    })
+    .filter((t) => t.columns.length > 0 && t.rows.length > 0);
+
+  return {
+    title: str(raw.title) || 'Documento sin título',
+    documentType: str(raw.documentType) || 'Documento',
+    language: str(raw.language),
+    transcription: str(raw.transcription),
+    summary: {
+      overview: str(raw.summary?.overview),
+      keyPoints: strList(raw.summary?.keyPoints),
+    },
+    keyData: (Array.isArray(raw.keyData) ? raw.keyData : [])
+      .map((d) => ({ label: str(d?.label), value: str(d?.value) }))
+      .filter((d) => d.label && d.value),
+    tables,
+    suggestedQuestions: strList(raw.suggestedQuestions).slice(0, 4),
+    warnings: strList(raw.warnings),
+  };
+}
+
