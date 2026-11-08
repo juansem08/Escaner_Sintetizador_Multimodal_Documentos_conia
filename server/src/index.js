@@ -59,3 +59,20 @@ app.get('/api/health', (_req, res) => {
 });
 
 // OCR + resumen + datos a partir de imágenes o PDF
+app.post(
+  '/api/analyze',
+  upload.array('pages', MAX_PAGES),
+  route(async (req, res) => {
+    const files = req.files ?? [];
+    if (files.length === 0) throw new HttpError(400, 'noPages');
+    const totalBytes = files.reduce((sum, f) => sum + f.size, 0);
+    if (totalBytes > MAX_TOTAL_MB * 1024 * 1024) throw new HttpError(413, 'totalTooLarge', { max: MAX_TOTAL_MB });
+
+    const started = Date.now();
+    const analysis = await analyzeDocument(files);
+    console.log(`[analyze] ${files.length} archivo/s en ${Date.now() - started} ms → "${analysis.title}"`);
+    res.json({ analysis });
+  }),
+);
+
+// Regenera el análisis a partir del texto corregido por el usuario
