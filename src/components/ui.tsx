@@ -197,6 +197,19 @@ export function ScreenHeader({
 // Título de sección con acción opcional ("Recientes · Ver todo")
 // ---------------------------------------------------------------------------
 
+export function SectionTitle({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
+  const c = useColors();
+  return (
+    <View style={styles.section}>
+      <Text style={[type.heading, { color: c.text, fontSize: 19 }]}>{title}</Text>
+      {action && onAction ? (
+        <Pressable onPress={onAction} hitSlop={10}>
+          <Text style={[type.label, { color: c.accentText }]}>{action}</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   pillSm: { ...type.label, fontSize: 12, lineHeight: 16 },
@@ -227,4 +240,3 @@ export const useCardStyle = makeStyles((c) =>
     },
   }),
 );
-
