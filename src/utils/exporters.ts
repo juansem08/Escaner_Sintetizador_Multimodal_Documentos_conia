@@ -217,6 +217,42 @@ function buildCsv(a: DocumentAnalysis, t: TFunction): string {
 // Excel (.xlsx) con el estilo de la app
 // ---------------------------------------------------------------------------
 
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+export async function exportExcel(a: DocumentAnalysis, t: TFunction) {
+  let base64: string;
+  try {
+    base64 = buildWorkbookBase64(a, t);
+  } catch (err) {
+    console.warn('[Clarify] no se pudo generar el .xlsx, se exporta CSV:', (err as Error).message);
+    await exportCsv(a, t);
+    return;
+  }
+  const filename = `${fileSlug(a.title)}.xlsx`;
+
+  if (Platform.OS === 'web') {
+    const link = document.createElement('a');
+    link.href = `data:${XLSX_MIME};base64,${base64}`;
+    link.download = filename;
+    link.click();
+    return;
+  }
+
+  try {
+    const file = new File(Paths.cache, filename);
+    if (file.exists) file.delete();
+    file.create();
+    await file.write(base64, { encoding: 'base64' });
+    await Sharing.shareAsync(file.uri, { mimeType: XLSX_MIME, UTI: 'org.openxmlformats.spreadsheetml.sheet', dialogTitle: a.title });
+  } catch (err) {
+    console.warn('[Clarify] no se pudo compartir el .xlsx, se exporta CSV:', (err as Error).message);
+    await exportCsv(a, t);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CSV (respaldo)
+// ---------------------------------------------------------------------------
 
 export async function exportCsv(a: DocumentAnalysis, t: TFunction) {
   // El BOM hace que Excel detecte UTF-8 y muestre bien tildes y eñes
