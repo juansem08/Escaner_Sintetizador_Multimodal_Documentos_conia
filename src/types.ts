@@ -28,3 +28,34 @@ export type DocumentAnalysis = {
   warnings: string[];
 };
 
+export type InsightMode = 'contract' | 'study' | 'invoice' | 'general';
+export type InsightLevel = 'high' | 'medium' | 'low' | 'info';
+
+export type Insights = {
+  headline: string;
+  sections: { heading: string; items: { title: string; detail: string; level: InsightLevel }[] }[];
+  flashcards: { question: string; answer: string }[];
+};
+
+export type ChatMessage = {
+  id: string;
+  role: 'user' | 'model';
+  text: string;
+  createdAt: number;
+};
+
+/** Idioma en el que se está viendo el documento */
+export type ViewLanguage = 'original' | TranslationCode;
+
+/** Documento guardado en el historial del dispositivo */
+export type ScannedDocument = {
+  id: string;
+  createdAt: number;
+  pages: PageInput[];
+  analysis: DocumentAnalysis;
+  chat: ChatMessage[];
+  /** Traducciones ya generadas, por código de idioma */
+  translations?: Partial<Record<TranslationCode, DocumentAnalysis>>;
+  /** Análisis especializados, con clave "modo:idioma" (p. ej. "contract:original") */
+  insights?: Record<string, Insights>;
+};
