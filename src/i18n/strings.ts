@@ -210,6 +210,9 @@ const es = {
 
 export type StringKey = keyof typeof es;
 
+
+export type StringKey = keyof typeof es;
+
 const en: Record<StringKey, string> = {
   'common.cancel': 'Cancel',
   'common.delete': 'Delete',
@@ -427,7 +430,3 @@ export const TRANSLATION_LANGUAGES = [
   { code: 'it', name: 'Italiano' },
 ] as const;
 export type TranslationCode = (typeof TRANSLATION_LANGUAGES)[number]['code'];
-};
-
-export const TRANSLATION_LANGUAGES = [{ code: "en", name: "English", flag: "🇺🇸" }] as const;
-export type TranslationCode = "en";
