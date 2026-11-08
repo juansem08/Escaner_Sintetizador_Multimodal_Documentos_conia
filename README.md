@@ -72,3 +72,42 @@ server/
   src/listModels.js       Lista los modelos disponibles para tu API key
 ```
 
+## Puesta en marcha
+
+Requisitos: **Node.js 22+** y la app **Expo Go** en el móvil (o un emulador).
+
+```bash
+# 1. Dependencias
+npm install
+npm run server:install
+
+# 2. API key de Gemini (gratis en https://aistudio.google.com/apikey)
+cp server/.env.example server/.env      # en Windows: copy server\.env.example server\.env
+#    edita server/.env y pon GEMINI_API_KEY=...
+
+# 3. Arranca el backend (terminal 1)
+npm run server
+
+# 4. Arranca la app (terminal 2) y abre el proyecto con Expo Go
+npm start
+```
+
+El móvil y el PC deben estar en la **misma red Wi-Fi**. En desarrollo la app usa automáticamente la IP del PC que sirve Expo, en el puerto `3001` (se ve en *Ajustes → Servidor*, con un botón para probar la conexión). Si usas `expo start --tunnel` o el servidor está en otra máquina, define la URL en un `.env` en la raíz:
+
+```
+EXPO_PUBLIC_API_URL=http://192.168.1.42:3001
+```
+
+> **Windows:** la red Wi-Fi debe estar marcada como **Privada** y el firewall debe permitir los puertos `8081` (Expo) y `3001` (servidor). Si la app no conecta, revisa esto primero.
+
+### Modelo de Gemini
+
+Por defecto se usa **`gemini-3.5-flash`** (rápido y fiable) y, si está saturado, el servidor reintenta y pasa automáticamente al modelo de respaldo **`gemini-3.6-flash`**. Cada intento tiene un tiempo máximo, así que la app siempre recibe respuesta. Se configuran en `server/.env`:
+
+```
+GEMINI_MODEL=gemini-3.5-flash
+GEMINI_FALLBACK_MODEL=gemini-3.6-flash
+```
+
+Para ver qué modelos puede usar tu API key: `npm --prefix server run models`.
+
