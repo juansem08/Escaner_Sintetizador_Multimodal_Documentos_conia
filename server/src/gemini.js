@@ -134,6 +134,41 @@ const insightsSchema = {
 // 1) Análisis completo desde imágenes/PDF: OCR + resumen + datos en una llamada
 // ---------------------------------------------------------------------------
 
+const ANALYSIS_INSTRUCTIONS = `Eres un sistema experto de digitalización de documentos.
+Recibes una o varias páginas fotografiadas o escaneadas (notas manuscritas, páginas de libros, contratos, facturas, etc.).
+
+Tareas:
+1. OCR: transcribe TODO el texto con fidelidad, incluida la letra manuscrita. No inventes contenido; si algo no se lee, escribe [ilegible].
+2. Resumen ejecutivo: una visión general breve y puntos clave accionables.
+3. Datos clave: extrae los datos concretos más importantes (fechas, importes, partes, plazos, obligaciones, nombres, cifras).
+4. Tablas: estructura en tablas la información tabular. En contratos, incluye una tabla de cláusulas u obligaciones relevantes. Todas las filas deben tener tantas celdas como columnas.
+5. Sugiere preguntas que ayuden a entender el documento.
+
+Escribe el resumen, los datos, las tablas y las preguntas en el mismo idioma del documento.
+Si las imágenes no contienen un documento con texto, devuelve isDocument=false y deja el resto vacío.`;
+
+/** @param {{ buffer: Buffer, mimetype: string }[]} files */
+export async function analyzeDocument(files) {
+  const parts = files.map((file) => ({
+    inlineData: { mimeType: file.mimetype, data: file.buffer.toString('base64') },
+  }));
+  parts.push({ text: `Analiza este documento (${files.length} archivo/s) y devuelve el JSON solicitado.` });
+
+  const raw = await generateJson({
+    contents: [{ role: 'user', parts }],
+    systemInstruction: ANALYSIS_INSTRUCTIONS,
+    schema: analysisSchema,
+    temperature: 0.2,
+  });
+
+  if (raw.isDocument === false || !str(raw.transcription)) throw new HttpError(422, 'notDocument');
+  return normalizeAnalysis(raw);
+}
+
+// ---------------------------------------------------------------------------
+// 2) Re-análisis a partir del texto corregido por el usuario
+// ---------------------------------------------------------------------------
+
 
 const str = (v) => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v));
 const strList = (v) => (Array.isArray(v) ? v.map(str).filter(Boolean) : []);
