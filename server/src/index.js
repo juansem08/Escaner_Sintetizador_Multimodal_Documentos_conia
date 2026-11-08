@@ -35,3 +35,22 @@ const app = express();
 app.use(cors());
 
 // Registro de cada petición: método, ruta, origen, código y duración
+app.use((req, res, next) => {
+  const started = Date.now();
+  res.on('finish', () => {
+    const ip = (req.ip ?? '').replace('::ffff:', '');
+    console.log(`→ ${req.method} ${req.path} desde ${ip} · ${res.statusCode} · ${Date.now() - started} ms`);
+  });
+  next();
+});
+
+/** Envuelve un handler async para mandar los errores al middleware */
+const route = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);
+
+function requireDocument(document) {
+  if (!document || typeof document !== 'object') throw new HttpError(400, 'missingDocument');
+  if (typeof document.transcription !== 'string' || !document.transcription.trim()) {
+    throw new HttpError(400, 'emptyText');
+  }
+}
+
