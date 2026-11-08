@@ -138,6 +138,31 @@ export function ScanScreen({ initialPages, onCancel, onDone }: Props) {
         </View>
         <View style={styles.hintPill}>
           <Feather name={mode === 'book' ? 'book-open' : mode === 'manual' ? 'crop' : 'maximize'} size={15} color={ORANGE} />
+          <Text style={styles.hintText}>{t(`scan.modeHint.${mode}` as StringKey)}</Text>
+        </View>
+      </View>
+
+      <View style={[styles.panel, { paddingBottom: Math.max(insets.bottom, 12) + spacing.sm }]}>
+        <View style={styles.modes}>
+          {MODES.map((m) => (
+            <Pressable
+              key={m}
+              onPress={() => setMode(m)}
+              style={[styles.mode, mode === m && styles.modeActive]}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: mode === m }}
+            >
+              <Text style={[styles.modeText, mode === m && styles.modeTextActive]}>{t(`scan.mode.${m}` as StringKey)}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={styles.controls}>
+          {/* Miniaturas apiladas con contador: llevan a revisar las páginas */}
+          <Pressable
+            style={styles.side}
+            onPress={() => pages.length > 0 && onDone(pages)}
+            disabled={pages.length === 0}
         </View>
       </View>
     </View>
