@@ -37,3 +37,58 @@ function getClient() {
 // ---------------------------------------------------------------------------
 // Esquemas JSON
 // ---------------------------------------------------------------------------
+
+const S = (description) => ({ type: Type.STRING, description });
+const list = (items, description) => ({ type: Type.ARRAY, items, description });
+
+const analysisProperties = {
+  title: S('Título breve y descriptivo del documento'),
+  documentType: S('Tipo: nota manuscrita, página de libro, apuntes, contrato, factura, recibo, formulario, carta, otro'),
+  language: S('Idioma principal del documento, escrito en ese idioma (p. ej. "español", "English")'),
+  transcription: S(
+    'Transcripción OCR fiel y completa de todas las páginas, en orden, conservando párrafos y listas. ' +
+      'Separa páginas con "--- Página N ---". Marca lo ilegible como [ilegible].',
+  ),
+  summary: {
+    type: Type.OBJECT,
+    properties: {
+      overview: S('Resumen ejecutivo de 2 a 4 frases'),
+      keyPoints: list({ type: Type.STRING }, 'De 3 a 8 puntos clave, cada uno una frase concreta'),
+    },
+    required: ['overview', 'keyPoints'],
+  },
+  keyData: list(
+    {
+      type: Type.OBJECT,
+      properties: { label: { type: Type.STRING }, value: { type: Type.STRING } },
+      required: ['label', 'value'],
+    },
+    'Datos clave sueltos: fechas, importes, partes, plazos, nombres, cifras, obligaciones',
+  ),
+  tables: list(
+    {
+      type: Type.OBJECT,
+      properties: {
+        title: { type: Type.STRING },
+        columns: list({ type: Type.STRING }),
+        rows: list(list({ type: Type.STRING })),
+      },
+      required: ['title', 'columns', 'rows'],
+    },
+    'Tablas con información estructurada: tablas del documento o datos que se organizan mejor en filas ' +
+      '(cláusulas, partidas, cronogramas). Vacío si no aplica.',
+  ),
+  suggestedQuestions: list({ type: Type.STRING }, '3 o 4 preguntas útiles que el usuario podría hacer sobre el documento'),
+  warnings: list({ type: Type.STRING }, 'Avisos de calidad: partes borrosas, cortadas o ilegibles. Vacío si todo es legible.'),
+};
+const analysisKeys = Object.keys(analysisProperties);
+
+const analysisSchema = {
+  type: Type.OBJECT,
+  properties: {
+    isDocument: { type: Type.BOOLEAN, description: 'false si las imágenes no contienen texto legible de un documento' },
+    ...analysisProperties,
+  },
+  required: ['isDocument', ...analysisKeys],
+};
+
