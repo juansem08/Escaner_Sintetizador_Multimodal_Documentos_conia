@@ -118,6 +118,51 @@ export function PageEditor({ page, onCancel, onSave }: Props) {
 
   const fail = (err: unknown) => {
     console.warn('[editor]', err);
+    Alert.alert(t('editor.error'));
+  };
+
+  const rotate = async (degrees: number) => {
+    setBusy(true);
+    try {
+      const ref = await ImageManipulator.manipulate(uri).rotate(degrees).renderAsync();
+      const result = await ref.saveAsync({ compress: 0.85, format: SaveFormat.JPEG });
+      setUri(result.uri);
+    } catch (err) {
+      fail(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const apply = async () => {
+    if (!crop || !display || !imageSize) return;
+    const isFull = crop.x < 1 && crop.y < 1 && crop.w > display.w - 1 && crop.h > display.h - 1;
+    const jpgName = page.name.replace(/\.\w+$/, '') + '.jpg';
+
+    if (isFull) {
+      onSave(uri === page.uri ? page : { uri, mimeType: 'image/jpeg', name: jpgName });
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const f = 1 / display.scale;
+      const originX = Math.max(0, Math.round(crop.x * f));
+      const originY = Math.max(0, Math.round(crop.y * f));
+      const rect = {
+        originX,
+        originY,
+        width: Math.min(imageSize.w - originX, Math.round(crop.w * f)),
+        height: Math.min(imageSize.h - originY, Math.round(crop.h * f)),
+      };
+      const ref = await ImageManipulator.manipulate(uri).crop(rect).renderAsync();
+      const result = await ref.saveAsync({ compress: 0.85, format: SaveFormat.JPEG });
+      onSave({ uri: result.uri, mimeType: 'image/jpeg', name: jpgName });
+    } catch (err) {
+      fail(err);
+      setBusy(false);
+    }
+  };
 
   return (
     <Modal visible animationType="slide" onRequestClose={onCancel} statusBarTranslucent>
