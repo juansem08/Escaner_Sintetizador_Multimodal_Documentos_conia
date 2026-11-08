@@ -197,6 +197,40 @@ export async function analyzeText(transcription) {
 // 3) Traducción del análisis completo
 // ---------------------------------------------------------------------------
 
+export async function translateAnalysis(analysis, targetCode) {
+  const target = TRANSLATION_LANGUAGES[targetCode];
+  const source = {
+    title: analysis.title,
+    documentType: analysis.documentType,
+    language: analysis.language,
+    transcription: String(analysis.transcription ?? '').slice(0, MAX_TRANSCRIPTION_CHARS),
+    summary: analysis.summary,
+    keyData: analysis.keyData,
+    tables: analysis.tables,
+    suggestedQuestions: analysis.suggestedQuestions,
+    warnings: analysis.warnings,
+  };
+
+  const raw = await generateJson({
+    contents: [{ role: 'user', parts: [{ text: JSON.stringify(source) }] }],
+    systemInstruction: `You are a professional translator. You receive a JSON document analysis.
+Translate EVERY text value into ${target}, keeping exactly the same JSON structure.
+Rules:
+- Keep numbers, amounts, dates, proper names, emails and IDs unchanged.
+- Tables must keep the same number of columns and rows, in the same order.
+- Keep page separators ("--- Página N ---") translated naturally (e.g. "--- Page N ---").
+- Set "language" to the name of ${target} written in ${target} (e.g. "English", "Español", "Français").
+- Translate faithfully: do not summarize, add or remove content.`,
+    schema: translationSchema,
+    temperature: 0.1,
+  });
+  return normalizeAnalysis(raw);
+}
+
+// ---------------------------------------------------------------------------
+// 4) Análisis especializado según el tipo de documento
+// ---------------------------------------------------------------------------
+
 
 const str = (v) => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v));
 const strList = (v) => (Array.isArray(v) ? v.map(str).filter(Boolean) : []);
