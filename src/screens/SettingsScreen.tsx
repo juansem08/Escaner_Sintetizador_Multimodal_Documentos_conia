@@ -50,9 +50,32 @@ export function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={text.display}>{t('settings.title')}</Text>
 
-        </View>
+        <Card title={t('settings.language')}>
+          <Segmented options={languages} value={settings.language} onChange={(language) => update({ language })} />
+          <Text style={text.small}>{t('settings.languageNote')}</Text>
+        </Card>
+
+        <Card title={t('settings.theme')}>
+          <Segmented options={themes} value={settings.theme} onChange={(theme) => update({ theme })} />
+        </Card>
+
+        <Card title={t('settings.server')}>
+          <View style={styles.server}>
+            <Feather name="server" size={16} color={c.textMuted} />
+            <Text style={styles.mono} selectable numberOfLines={1}>
+              {API_BASE_URL}
+            </Text>
+          </View>
+          <Button title={t('settings.test')} icon="wifi" variant="soft" onPress={test} loading={testing} />
+          {status && (
+            <View style={[styles.status, { backgroundColor: status.ok ? c.successSoft : c.dangerSoft }]}>
+              <Feather name={status.ok ? 'check-circle' : 'alert-circle'} size={16} color={status.ok ? c.success : c.danger} />
+              <Text style={[text.small, { color: status.ok ? c.success : c.danger, flex: 1 }]}>{status.message}</Text>
+            </View>
+          )}
+        </Card>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -120,4 +143,3 @@ const useStyles = makeStyles((c) =>
     segmentTextActive: { color: c.onInk, fontFamily: fonts.bold },
   }),
 );
-
