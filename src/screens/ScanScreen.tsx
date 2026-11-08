@@ -163,6 +163,26 @@ export function ScanScreen({ initialPages, onCancel, onDone }: Props) {
             style={styles.side}
             onPress={() => pages.length > 0 && onDone(pages)}
             disabled={pages.length === 0}
+            accessibilityLabel={t('review.title')}
+          >
+            {pages.length > 0 ? (
+              <View style={styles.stack}>
+                {lastTwo.length > 1 && <Image source={{ uri: lastTwo[0].uri }} style={[styles.stackCard, styles.stackBack]} />}
+                <Image source={{ uri: lastTwo[lastTwo.length - 1].uri }} style={[styles.stackCard, styles.stackFront]} />
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{pages.length}</Text>
+                </View>
+              </View>
+            ) : (
+              <View style={[styles.stackCard, styles.stackEmpty]}>
+                <Feather name="layers" size={20} color="rgba(255,255,255,0.4)" />
+              </View>
+            )}
+          </Pressable>
+
+          <Pressable
+            onPress={capture}
+            disabled={!ready || busy || full}
         </View>
       </View>
     </View>
