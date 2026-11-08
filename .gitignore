@@ -1,4 +1,4 @@
-# Node dependencies
+# Dependencias
 node_modules/
 npm-debug.*
 yarn-error.log
@@ -7,8 +7,11 @@ yarn-error.log
 .expo/
 dist/
 web-build/
+expo-env.d.ts
 
-# Native builds
+# Builds nativos
+/android
+/ios
 *.jks
 *.p8
 *.p12
@@ -16,11 +19,12 @@ web-build/
 *.mobileprovision
 *.orig.*
 
-# Environment variables
+# Variables de entorno (nunca subir claves)
 .env
 .env.local
 .env.*.local
+server/.env
 
-# OS
+# Sistema
 .DS_Store
 Thumbs.db
