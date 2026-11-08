@@ -183,8 +183,42 @@ export function ScanScreen({ initialPages, onCancel, onDone }: Props) {
           <Pressable
             onPress={capture}
             disabled={!ready || busy || full}
+            style={({ pressed }) => [
+              styles.shutter,
+              (pressed || busy) && { transform: [{ scale: 0.93 }] },
+              (!ready || full) && { opacity: 0.4 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="shutter"
+          >
+            <View style={styles.shutterInner}>{busy && <ActivityIndicator color={ORANGE} />}</View>
+          </Pressable>
+
+          <View style={[styles.side, { alignItems: 'flex-end' }]}>
+            <Pressable
+              onPress={() => onDone(pages)}
+              disabled={pages.length === 0}
+              style={({ pressed }) => [styles.done, pages.length === 0 && { opacity: 0.35 }, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={styles.doneText}>{t('scan.done')}</Text>
+              <Feather name="arrow-right" size={17} color="#FFFFFF" />
+            </Pressable>
+          </View>
         </View>
+
+        <Text style={styles.footer}>{full ? t('scan.hintFull') : t('scan.footer')}</Text>
       </View>
+
+      {editing !== null && pages[editing] && (
+        <PageEditor
+          page={pages[editing]}
+          onCancel={() => setEditing(null)}
+          onSave={(page) => {
+            setPages((prev) => prev.map((p, i) => (i === editing ? page : p)));
+            setEditing(null);
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -333,4 +367,3 @@ const styles = StyleSheet.create({
   doneText: { color: '#FFFFFF', fontFamily: fonts.bold, fontSize: 16 },
   footer: { color: 'rgba(255,255,255,0.6)', textAlign: 'center', fontFamily: fonts.medium, fontSize: 13 },
 });
-
