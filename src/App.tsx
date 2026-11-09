@@ -9,16 +9,20 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { BackHandler, View } from 'react-native';
+import { BackHandler, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider, useAuth } from './auth/AuthContext';
 import { BottomNav, type NavTab } from './components/BottomNav';
+import { AuthScreen } from './screens/AuthScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { ProcessingScreen } from './screens/ProcessingScreen';
 import { ResultScreen } from './screens/ResultScreen';
 import { ReviewScreen } from './screens/ReviewScreen';
 import { ScanScreen } from './screens/ScanScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { VerifyEmailScreen } from './screens/VerifyEmailScreen';
 import { SettingsProvider, useSettings } from './settings/SettingsContext';
+import { type } from './theme';
 import type { PageInput, ScannedDocument } from './types';
 
 // Mantenemos la pantalla de carga (icono de Clarify) hasta que la fuente esté lista
@@ -43,19 +47,49 @@ export default function App() {
   });
 
   // Si la fuente no carga seguimos con la del sistema en lugar de bloquear la app
-  const ready = fontsLoaded || Boolean(fontError);
+  if (!fontsLoaded && !fontError) return null;
+
+  return (
+    <SafeAreaProvider>
+      <SettingsProvider>
+        <AuthProvider>
+          <Root />
+        </AuthProvider>
+      </SettingsProvider>
+    </SafeAreaProvider>
+  );
+}
+
+/** Decide qué mostrar según la sesión: login, verificación del correo o la app */
+function Root() {
+  const { ready, configured, user } = useAuth();
+  const { isDark, colors } = useSettings();
+
+  // La pantalla de carga sigue visible hasta saber si hay una sesión guardada
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => {});
   }, [ready]);
 
   if (!ready) return null;
+  // Al cambiar de cuenta, toda la navegación y el historial empiezan de cero
+  if (configured && user?.emailVerified) return <Navigator key={user.uid} />;
 
   return (
-    <SafeAreaProvider>
-      <SettingsProvider>
-        <Navigator />
-      </SettingsProvider>
-    </SafeAreaProvider>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      {!configured ? <NotConfigured /> : user ? <VerifyEmailScreen /> : <AuthScreen />}
+    </View>
+  );
+}
+
+/** Aviso para desarrolladores si faltan las variables de Firebase */
+function NotConfigured() {
+  const { t, colors } = useSettings();
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', padding: 28, gap: 12 }}>
+      <Text style={{ ...type.title, color: colors.text }}>{t('auth.notConfiguredTitle')}</Text>
+      <Text style={{ ...type.body, color: colors.textMuted }}>{t('auth.notConfiguredText')}</Text>
+    </View>
   );
 }
 

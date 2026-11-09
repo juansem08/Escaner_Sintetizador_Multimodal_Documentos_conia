@@ -68,9 +68,50 @@ export function setApiLanguage(lang: AppLanguage) {
   language = lang;
 }
 
-export class ApiError extends Error {}
+/** Devuelve el token de la sesión de Firebase (o null sin sesión). Lo registra AuthProvider. */
+type TokenProvider = (forceRefresh: boolean) => Promise<string | null>;
+let getToken: TokenProvider = async () => null;
+export function setAuthTokenProvider(provider: TokenProvider) {
+  getToken = provider;
+}
 
-async function request<T>(path: string, init: RequestInit, timeoutMs: number): Promise<T> {
+async function authHeaders(forceRefresh = false): Promise<Record<string, string>> {
+  const token = await getToken(forceRefresh).catch(() => null);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+  }
+}
+
+/** 401/403: el token puede estar caducado o no incluir aún el correo verificado */
+const isAuthError = (err: unknown) => err instanceof ApiError && (err.status === 401 || err.status === 403);
+
+/** Reintenta una vez con un token renovado si el servidor rechaza la sesión */
+async function withAuthRetry<T>(send: (headers: Record<string, string>) => Promise<T>): Promise<T> {
+  try {
+    return await send(await authHeaders());
+  } catch (err) {
+    if (!isAuthError(err)) throw err;
+    return send(await authHeaders(true));
+  }
+}
+
+function request<T>(path: string, init: RequestInit, timeoutMs: number): Promise<T> {
+  return withAuthRetry((auth) => requestOnce<T>(path, init, timeoutMs, auth));
+}
+
+async function requestOnce<T>(
+  path: string,
+  init: RequestInit,
+  timeoutMs: number,
+  auth: Record<string, string>,
+): Promise<T> {
   const t = makeT(language);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -79,7 +120,7 @@ async function request<T>(path: string, init: RequestInit, timeoutMs: number): P
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
-      headers: { 'Accept-Language': language, ...(init.headers as Record<string, string> | undefined) },
+      headers: { 'Accept-Language': language, ...auth, ...(init.headers as Record<string, string> | undefined) },
       signal: controller.signal,
     });
   } catch (err) {
@@ -98,7 +139,7 @@ async function request<T>(path: string, init: RequestInit, timeoutMs: number): P
   }
 
   const body = await response.json().catch(() => null);
-  if (!response.ok) throw new ApiError(body?.error ?? t('error.server', { status: response.status }));
+  if (!response.ok) throw new ApiError(body?.error ?? t('error.server', { status: response.status }), response.status);
   return body as T;
 }
 
@@ -125,11 +166,16 @@ const documentContext = (a: DocumentAnalysis) => ({
  * que lee el archivo de forma nativa a partir de su uri.
  */
 function uploadForm<T>(path: string, form: FormData, timeoutMs: number): Promise<T> {
+  return withAuthRetry((auth) => uploadFormOnce<T>(path, form, timeoutMs, auth));
+}
+
+function uploadFormOnce<T>(path: string, form: FormData, timeoutMs: number, auth: Record<string, string>): Promise<T> {
   const t = makeT(language);
   return new Promise<T>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${API_BASE_URL}${path}`);
     xhr.setRequestHeader('Accept-Language', language);
+    for (const [name, value] of Object.entries(auth)) xhr.setRequestHeader(name, value);
     xhr.timeout = timeoutMs;
     xhr.onload = () => {
       let body: any = null;
@@ -139,7 +185,7 @@ function uploadForm<T>(path: string, form: FormData, timeoutMs: number): Promise
         // respuesta no JSON
       }
       if (xhr.status >= 200 && xhr.status < 300) resolve(body as T);
-      else reject(new ApiError(body?.error ?? t('error.server', { status: xhr.status })));
+      else reject(new ApiError(body?.error ?? t('error.server', { status: xhr.status }), xhr.status));
     };
     xhr.ontimeout = () => reject(new ApiError(t('error.timeout')));
     xhr.onerror = () => {
@@ -198,5 +244,10 @@ export async function askQuestion(analysis: DocumentAnalysis, history: ChatMessa
 }
 
 export async function checkHealth() {
-  return request<{ ok: boolean; model: string; hasApiKey: boolean }>('/api/health', { method: 'GET' }, 8_000);
+  return request<{ ok: boolean; model: string; hasApiKey: boolean; auth?: boolean }>(
+    '/api/health',
+    { method: 'GET' },
+    // El servidor gratuito de Render tarda hasta ~50 s en despertar
+    60_000,
+  );
 }

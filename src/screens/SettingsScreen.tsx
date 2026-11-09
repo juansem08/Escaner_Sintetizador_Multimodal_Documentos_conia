@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { API_BASE_URL, checkHealth } from '../api/client';
+import { AccountCard } from '../components/AccountCard';
 import { BOTTOM_NAV_SPACE } from '../components/BottomNav';
 import { Button, type FeatherName } from '../components/Button';
 import { Card, useTextStyles } from '../components/Card';
@@ -49,6 +50,8 @@ export function SettingsScreen() {
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={text.display}>{t('settings.title')}</Text>
+
+        <AccountCard />
 
         <Card title={t('settings.language')}>
           <Segmented options={languages} value={settings.language} onChange={(language) => update({ language })} />

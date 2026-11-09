@@ -1,6 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { makeStyles, radius, spacing, type, useColors } from '../theme';
 import type { FeatherName } from './Button';
@@ -12,12 +12,15 @@ export function BottomSheet({ visible, title, onClose, children }: Props) {
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="close" />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}>
-        <View style={styles.handle} />
-        <Text style={styles.title}>{title}</Text>
-        {children}
-      </View>
+      {/* Sube la hoja por encima del teclado cuando contiene campos de texto */}
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
+        <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="close" />
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}>
+          <View style={styles.handle} />
+          <Text style={styles.title}>{title}</Text>
+          {children}
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -72,6 +75,7 @@ export function SheetOption({ icon, label, description, onPress, selected, loadi
 
 const useStyles = makeStyles((c) =>
   StyleSheet.create({
+    flex: { flex: 1 },
     backdrop: { flex: 1, backgroundColor: c.overlay },
     sheet: {
       backgroundColor: c.background,

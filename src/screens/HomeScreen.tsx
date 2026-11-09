@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../auth/AuthContext';
 import { BOTTOM_NAV_SPACE } from '../components/BottomNav';
 import { Button } from '../components/Button';
 import { useTextStyles } from '../components/Card';
@@ -38,6 +39,8 @@ const capitalize = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : 
 
 export function HomeScreen({ mode, onScan, onImportImages, onImportPdf, onOpen, onSettings, onSeeAll }: Props) {
   const { t } = useSettings();
+  const { user } = useAuth();
+  const firstName = user?.name.split(/\s+/)[0] ?? '';
   const styles = useStyles();
   const text = useTextStyles();
   const c = useColors();
@@ -143,7 +146,7 @@ export function HomeScreen({ mode, onScan, onImportImages, onImportPdf, onOpen, 
       <View style={styles.header}>
         <View style={styles.topRow}>
           <View>
-            <Text style={text.small}>{t('home.greeting')}</Text>
+            <Text style={text.small}>{firstName ? t('home.greetingName', { name: firstName }) : t('home.greeting')}</Text>
             <Text style={text.brand}>Clarify</Text>
           </View>
           <RoundButton icon="sliders" label={t('home.settings')} onPress={onSettings} size={56}>
