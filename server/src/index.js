@@ -12,6 +12,8 @@ import {
   TRANSLATION_LANGUAGES,
   translateAnalysis,
 } from './gemini.js';
+import { actionPageHtml } from './actionPage.js';
+import { authEnabled, requireAuth } from './auth.js';
 import { HttpError } from './httpError.js';
 import { requestLang, translate } from './messages.js';
 
@@ -54,9 +56,20 @@ function requireDocument(document) {
   }
 }
 
-app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, model: modelName, hasApiKey: Boolean(process.env.GEMINI_API_KEY) });
+// Página de los enlaces de los correos de Firebase (verificar correo y restablecer contraseña).
+// El enlace lleva un código de un solo uso: que no se guarde en caché ni se envíe como referer.
+app.get('/auth/action', (_req, res) => {
+  res.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Robots-Tag': 'noindex' });
+  res.type('html').send(actionPageHtml);
 });
+
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true, model: modelName, hasApiKey: Boolean(process.env.GEMINI_API_KEY), auth: authEnabled });
+});
+
+// Todas las rutas de IA exigen sesión iniciada con el correo verificado.
+// Va antes de multer y express.json para no procesar archivos de peticiones sin permiso.
+app.use('/api', requireAuth);
 
 // OCR + resumen + datos a partir de imágenes o PDF
 app.post(
@@ -150,6 +163,11 @@ app.use((err, req, res, _next) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Clarify API escuchando en el puerto ${PORT} (modelo: ${modelName})`);
   if (!process.env.GEMINI_API_KEY) console.warn('⚠  Falta GEMINI_API_KEY: copia server/.env.example a server/.env');
+  console.log(
+    authEnabled
+      ? '  Login: activado (solo usuarios con el correo verificado)'
+      : '  Login: desactivado (define FIREBASE_PROJECT_ID para exigir sesión)',
+  );
 
   const lan = Object.values(os.networkInterfaces())
     .flat()

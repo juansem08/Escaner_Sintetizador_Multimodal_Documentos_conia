@@ -27,6 +27,9 @@ const messages = {
     invalidLanguage: 'Idioma no soportado.',
     routeNotFound: 'Ruta no encontrada.',
     internal: 'Error interno del servidor.',
+    unauthorized: 'Inicia sesión para usar Clarify.',
+    sessionExpired: 'Tu sesión caducó. Vuelve a intentarlo.',
+    emailNotVerified: 'Verifica tu correo electrónico para usar Clarify.',
   },
   en: {
     noPages: 'No pages were received.',
@@ -54,6 +57,9 @@ const messages = {
     invalidLanguage: 'Unsupported language.',
     routeNotFound: 'Route not found.',
     internal: 'Internal server error.',
+    unauthorized: 'Sign in to use Clarify.',
+    sessionExpired: 'Your session expired. Please try again.',
+    emailNotVerified: 'Verify your email address to use Clarify.',
   },
 };
 
