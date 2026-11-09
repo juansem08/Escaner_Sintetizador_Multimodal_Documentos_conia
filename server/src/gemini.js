@@ -2,12 +2,16 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { HttpError } from './httpError.js';
 
 const MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
-// Si el modelo principal está saturado (503) tras los reintentos, se prueba con este
+// Si el modelo principal está saturado o no responde, se prueba con este
 const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL ?? 'gemini-3.6-flash';
-const RETRY_DELAYS_MS = [1500, 4000];
-// Cada intento puede tardar como mucho esto; el total se mantiene por debajo del timeout de la app (150 s)
-const ATTEMPT_TIMEOUT_MS = 60_000;
-const TOTAL_BUDGET_MS = 130_000;
+// Último recurso: modelo ligero, más rápido y casi siempre disponible (vacío para desactivarlo)
+const LAST_RESORT_MODEL = process.env.GEMINI_LAST_RESORT_MODEL ?? 'gemini-3.5-flash-lite';
+// Un reintento corto por modelo: si sigue saturado, es mejor pasar al siguiente que insistir
+const RETRY_DELAYS_MS = [1500];
+// Un análisis normal tarda 5-25 s: si un modelo pasa de esto, probablemente esté colgado.
+// El total se mantiene por debajo del timeout de la app (150 s).
+const ATTEMPT_TIMEOUT_MS = 50_000;
+const TOTAL_BUDGET_MS = 135_000;
 const MAX_TRANSCRIPTION_CHARS = 120_000;
 const MAX_HISTORY_MESSAGES = 12;
 
@@ -424,11 +428,13 @@ const isTransient = (status) => status === 429 || status === 500 || status === 5
  * @param {(model: string, signal: AbortSignal) => Promise<any>} fn
  */
 async function callGemini(fn) {
-  const models = FALLBACK_MODEL && FALLBACK_MODEL !== MODEL ? [MODEL, FALLBACK_MODEL] : [MODEL];
+  // Cadena de modelos sin repetidos: principal → respaldo → último recurso
+  const models = [...new Set([MODEL, FALLBACK_MODEL, LAST_RESORT_MODEL].filter(Boolean))];
   const deadline = Date.now() + TOTAL_BUDGET_MS;
   let lastError;
 
-  for (const model of models) {
+  for (const [index, model] of models.entries()) {
+    if (index > 0) console.warn(`[gemini] ${models[index - 1]} no disponible, probando con ${model}`);
     for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
       const remaining = deadline - Date.now();
       if (remaining < 5_000) break;
@@ -445,7 +451,6 @@ async function callGemini(fn) {
         if (attempt < RETRY_DELAYS_MS.length) await sleep(RETRY_DELAYS_MS[attempt]);
       }
     }
-    if (model !== models.at(-1)) console.warn(`[gemini] ${model} no disponible, probando con ${models.at(-1)}`);
   }
   throw toHttpError(lastError);
 }
