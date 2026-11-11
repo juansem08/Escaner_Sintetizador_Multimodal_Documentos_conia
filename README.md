@@ -21,6 +21,17 @@ Además:
 - **Modo oscuro** (automático o manual) y **app en español o inglés**, desde Ajustes.
 - Importar fotos de la galería o PDF, hasta 10 páginas por documento, con historial guardado en el dispositivo.
 
+## Descargar la app (Android)
+
+**[Descargar Clarify (.apk)](https://expo.dev/artifacts/eas/faLiHmuFmPuHr_bk5TnyZcYCEvTA_CAvowQMkp8nWUo.apk)** · [página de la compilación con código QR](https://expo.dev/accounts/juansem08/projects/clarify/builds/390a3837-eeaf-4b81-ab86-1e41704f5ae1)
+
+1. Abre el enlace desde el móvil (o escanea el código QR de la página de la compilación) y descarga el archivo `.apk`.
+2. Ábrelo. Si Android avisa de *orígenes desconocidos*, toca **Configuración → Permitir de esta fuente** y vuelve atrás.
+3. Pulsa **Instalar** y abre Clarify.
+4. **Regístrate** con tu nombre, correo y contraseña, y abre el enlace del correo de verificación (revisa también la carpeta de spam). La app entra sola en cuanto el correo queda verificado.
+
+La app usa el servidor publicado en Render, así que funciona con cualquier conexión a internet. Si nadie la ha usado en los últimos 15 minutos, el primer análisis tarda unos 30–50 s más mientras el servidor se activa.
+
 ## Diseño
 
 Interfaz propia con fondo gris cálido, botones tipo píldora, tarjetas con **degradado naranja** de marca, tipografía **Plus Jakarta Sans** e iconos de línea. Navegación con barra flotante (Inicio · Documentos · Escanear · Ajustes). La pantalla *Preguntar* y el visor de la cámara usan un tema oscuro propio. Icono y pantalla de carga en `assets/` (se regeneran con `assets/make-icons.ps1`).
